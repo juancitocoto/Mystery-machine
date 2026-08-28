@@ -1,0 +1,11 @@
+# Extra dependencies only needed for running the test suite locally -
+# not installed in the Docker image, since the container never runs
+# pytest itself.
+#
+# Install with: pip install -r requirements-dev.txt
+# (the line below pulls in requirements.txt automatically)
+
+-r requirements.txt
+
+pytest
+httpx

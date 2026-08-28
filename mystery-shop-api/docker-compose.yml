@@ -1,0 +1,22 @@
+# Optional convenience for running locally with `docker compose up`.
+# You don't need this for deploying to Railway/Render/Fly.io - they
+# build straight from the Dockerfile - this is just nicer than typing
+# out a long `docker run` command by hand while developing.
+
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"          # host:container - visit http://127.0.0.1:8000
+    env_file:
+      - .env                  # your real secrets - never baked into the image
+    environment:
+      # Puts the SQLite job database inside the mounted ./data volume
+      # below, so job history survives `docker compose down` / restarts.
+      # Without this, jobs.db would live inside the container's own
+      # filesystem and be wiped out whenever the container is recreated.
+      - JOBS_DB_PATH=/app/data/jobs.db
+    volumes:
+      - ./uploaded_audio:/app/uploaded_audio   # keep uploads on your machine
+                                                 # across container restarts
+      - ./data:/app/data                        # keep the job database too

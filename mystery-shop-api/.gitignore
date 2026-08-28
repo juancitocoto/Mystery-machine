@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+*.egg-info/
+.pytest_cache/
+
+# Environment / secrets
+.env
+
+# Uploaded audio (don't commit user data)
+uploaded_audio/
+
+# The SQLite job database - local runtime data, not source code
+*.db
+*.db-journal
+
+# OS / editor cruft
+.DS_Store
+.vscode/
+.idea/
