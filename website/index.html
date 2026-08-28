@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<title>Allophilism Connects</title>
+
+<style>
+  :root {
+    --paper: #FBF6EF;
+    --surface: #FFFFFF;
+    --surface-2: #F3EBDD;
+    --ink: #241A2C;
+    --ink-soft: #6B5F72;
+    --ink-faint: #948A9B;
+    --border: #E8DFD3;
+    --border-strong: #D8CBBA;
+    --coral: #FF6F59;
+    --amber: #FFC145;
+    --amber-ink: #7A4A00;
+    --chip-bg: #F3EBDD;
+    --on-accent: #FFFFFF;
+    --shadow: 0 1px 2px rgba(36,26,44,0.05), 0 20px 40px -24px rgba(36,26,44,0.22);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #1B1420;
+      --surface: #241A2C;
+      --surface-2: #2C2033;
+      --ink: #F3E9DD;
+      --ink-soft: #C4B6CA;
+      --ink-faint: #8C7F93;
+      --border: #3A2E42;
+      --border-strong: #4A3C54;
+      --coral: #FF8468;
+      --amber: #FFC768;
+      --amber-ink: #FFE3AC;
+      --chip-bg: #2C2033;
+      --on-accent: #1B1420;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 20px 40px -24px rgba(0,0,0,0.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #1B1420;
+    --surface: #241A2C;
+    --surface-2: #2C2033;
+    --ink: #F3E9DD;
+    --ink-soft: #C4B6CA;
+    --ink-faint: #8C7F93;
+    --border: #3A2E42;
+    --border-strong: #4A3C54;
+    --coral: #FF8468;
+    --amber: #FFC768;
+    --amber-ink: #FFE3AC;
+    --chip-bg: #2C2033;
+    --on-accent: #1B1420;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 20px 40px -24px rgba(0,0,0,0.6);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", -apple-system, "Segoe UI", sans-serif;
+    font-size: 16.5px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+
+  a { color: inherit; }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--coral); outline-offset: 3px; border-radius: 3px; }
+
+  h1, h2, h3 { font-family: "Poppins", "IBM Plex Sans", sans-serif; font-weight: 700; text-wrap: balance; margin: 0; }
+  code, .mono { font-family: "IBM Plex Mono", ui-monospace, Consolas, monospace; }
+
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 32px; }
+  @media (max-width: 640px) { .wrap { padding: 0 22px; } }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .74rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--coral);
+    margin-bottom: 14px;
+  }
+  .eyebrow::before { content: ""; width: 16px; height: 2px; background: var(--coral); display: inline-block; }
+
+  .reveal { opacity: 0; transform: translateY(18px); transition: opacity .7s ease, transform .7s ease; }
+  .reveal.in { opacity: 1; transform: none; }
+
+  /* ---------- Nav ---------- */
+  header.site {
+    position: sticky; top: 0; z-index: 30;
+    background: color-mix(in srgb, var(--paper) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-row { display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; max-width: 1180px; margin: 0 auto; }
+  .brand { display: flex; align-items: center; gap: 10px; font-family: "Poppins", sans-serif; font-weight: 700; font-size: 1.05rem; }
+  .brand svg { width: 28px; height: 28px; }
+  .nav-links { display: flex; align-items: center; gap: 30px; font-size: .92rem; font-weight: 500; color: var(--ink-soft); }
+  .nav-links a:hover { color: var(--ink); }
+  .nav-cta {
+    font-family: "IBM Plex Sans", sans-serif; font-weight: 600; font-size: .86rem;
+    background: var(--ink); color: var(--paper);
+    padding: 9px 16px; border-radius: 8px; white-space: nowrap;
+  }
+  .nav-cta:hover { opacity: .88; }
+  @media (max-width: 760px) { .nav-links a:not(.nav-cta) { display: none; } }
+
+  /* ---------- Hero ---------- */
+  .hero { padding: 88px 0 40px; }
+  .hero h1 { font-size: clamp(2.3rem, 5.4vw, 3.6rem); line-height: 1.08; letter-spacing: -.01em; max-width: 15ch; }
+  .hero .lede { font-size: 1.15rem; color: var(--ink-soft); max-width: 52ch; margin: 22px 0 30px; }
+  .cta-row { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 56px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: "IBM Plex Sans", sans-serif; font-weight: 600; font-size: .95rem;
+    padding: 13px 22px; border-radius: 9px; transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .btn-primary { background: linear-gradient(90deg, var(--coral), var(--amber)); color: #2B1200; }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
+  .btn-ghost { border: 1px solid var(--border-strong); color: var(--ink); }
+  .btn-ghost:hover { border-color: var(--coral); color: var(--coral); }
+
+  /* signal strip */
+  .signal {
+    border: 1px solid var(--border); background: var(--surface);
+    border-radius: 14px; padding: 22px 24px 18px; box-shadow: var(--shadow);
+  }
+  .signal-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; flex-wrap: wrap; gap: 8px; }
+  .signal-label { font-family: "IBM Plex Mono", monospace; font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-faint); }
+  .signal-readout { font-family: "IBM Plex Mono", monospace; font-size: .82rem; color: var(--ink-soft); opacity: 0; transition: opacity .5s ease; }
+  .signal-readout.show { opacity: 1; }
+  .signal-readout strong { color: var(--coral); font-weight: 600; }
+  canvas#waveform { display: block; width: 100%; height: 130px; }
+
+  /* ---------- Sections ---------- */
+  section { padding: 84px 0; }
+  section.alt { background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .section-head { max-width: 62ch; margin-bottom: 40px; }
+  .section-head h2 { font-size: clamp(1.7rem, 3.4vw, 2.2rem); margin-bottom: 16px; }
+  .section-head p { color: var(--ink-soft); font-size: 1.04rem; max-width: 58ch; }
+
+  /* mission */
+  .mission-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: start; }
+  .mission-grid p { color: var(--ink-soft); font-size: 1.04rem; max-width: 46ch; }
+  @media (max-width: 860px) { .mission-grid { grid-template-columns: 1fr; gap: 28px; } }
+
+  /* product */
+  .product-grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: 56px; align-items: center; }
+  @media (max-width: 900px) { .product-grid { grid-template-columns: 1fr; } }
+  .product-copy p { color: var(--ink-soft); font-size: 1.04rem; max-width: 50ch; margin-bottom: 22px; }
+
+  .report-card {
+    background: var(--ink); color: #EFE6DA; border-radius: 14px; padding: 22px 22px 18px;
+    font-family: "IBM Plex Mono", monospace; font-size: .82rem; line-height: 1.7;
+    box-shadow: var(--shadow); overflow-x: auto;
+  }
+  .report-card .dots { display: flex; gap: 6px; margin-bottom: 14px; }
+  .report-card .dots span { width: 9px; height: 9px; border-radius: 50%; background: #ffffff26; }
+  .rc-key { color: #F2A97D; } .rc-str { color: #A9D18E; } .rc-num { color: #8FC7E8; }
+
+  /* how it works */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
+  @media (max-width: 860px) { .steps { grid-template-columns: 1fr; gap: 24px; } }
+  .step { border-top: 2px solid var(--border-strong); padding-top: 18px; }
+  .step .num { font-family: "IBM Plex Mono", monospace; font-size: .8rem; color: var(--coral); font-weight: 600; }
+  .step h3 { font-size: 1.15rem; margin: 10px 0 8px; }
+  .step p { color: var(--ink-soft); font-size: .96rem; max-width: 32ch; }
+
+  /* who for */
+  .chip-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+  .chip {
+    font-family: "IBM Plex Mono", monospace; font-size: .82rem; padding: 8px 14px;
+    background: var(--chip-bg); border: 1px solid var(--border); border-radius: 999px; color: var(--ink-soft);
+  }
+
+  /* cta */
+  .cta-block {
+    border-radius: 20px; padding: 56px 48px; text-align: left;
+    background: linear-gradient(120deg, color-mix(in srgb, var(--coral) 14%, var(--surface)), color-mix(in srgb, var(--amber) 16%, var(--surface)));
+    border: 1px solid var(--border);
+  }
+  .cta-block h2 { font-size: clamp(1.6rem, 3vw, 2.1rem); max-width: 20ch; }
+  .cta-block p { color: var(--ink-soft); max-width: 46ch; margin: 14px 0 26px; }
+  @media (max-width: 640px) { .cta-block { padding: 38px 26px; } }
+
+  footer { border-top: 1px solid var(--border); padding: 34px 0 46px; }
+  .foot-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; }
+  .foot-brand { display: flex; align-items: center; gap: 8px; font-family: "Poppins", sans-serif; font-weight: 700; font-size: .95rem; }
+  .foot-brand svg { width: 20px; height: 20px; }
+  footer .fine { color: var(--ink-faint); font-size: .82rem; }
+  footer a.doclink { color: var(--coral); font-weight: 500; }
+  footer a.doclink:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="nav-row">
+    <div class="brand">
+      <svg viewBox="0 0 512 512" aria-hidden="true">
+        <defs><linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#FF6F59"/><stop offset="100%" stop-color="#FFC145"/></linearGradient></defs>
+        <circle cx="256" cy="256" r="184" fill="none" stroke="url(#g1)" stroke-width="74"/>
+        <circle cx="256" cy="256" r="18" fill="var(--paper)"/>
+      </svg>
+      Allophilism Connects
+    </div>
+    <nav class="nav-links">
+      <a href="#product">Product</a>
+      <a href="#how">How it works</a>
+      <a href="#contact">Contact</a>
+      <a class="nav-cta" href="https://api.allophilismconnects.com/docs" target="_blank" rel="noopener">API docs</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap">
+      <span class="eyebrow">Allophilism Connects</span>
+      <h1>We turn raw conversations into clear answers.</h1>
+      <p class="lede">We build software for teams who need to genuinely understand the people they serve. Our flagship product, Allometrics, turns a single mystery-shop recording into a written report against your own guidelines — checked for lawful consent before anything else happens to it.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="#product">See how Allometrics works</a>
+        <a class="btn btn-ghost" href="https://api.allophilismconnects.com/docs" target="_blank" rel="noopener">Read the API docs</a>
+      </div>
+
+      <div class="signal">
+        <div class="signal-head">
+          <span class="signal-label">Branch 12 — Riverside · visit recording</span>
+          <span class="signal-readout mono" id="readout">Consent verified for <strong>TX</strong> · report ready</span>
+        </div>
+        <canvas id="waveform" aria-hidden="true"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <section id="mission">
+    <div class="wrap">
+      <div class="mission-grid">
+        <div class="reveal">
+          <span class="eyebrow">Who we are</span>
+          <h2>Understanding is the product.</h2>
+        </div>
+        <div class="reveal">
+          <p>Allophilism is an appreciation for people unlike yourself — the instinct to listen first, before you judge or generalize. We named the company after it because most software built to "understand the customer" just produces more data, not more understanding.</p>
+          <p>We build tools that do the listening for you, then hand back something a person can actually act on.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="alt" id="product">
+    <div class="wrap">
+      <div class="product-grid">
+        <div class="product-copy reveal">
+          <span class="eyebrow">Flagship product</span>
+          <h2 style="font-size:2.1rem; margin-bottom:18px;">Allometrics</h2>
+          <p>Mystery shop programs already run on a shopper's own account of the visit. Allometrics takes the recording they already make, along with your program's guidelines in plain English, and writes the narrative report a shopper would otherwise spend an hour typing up.</p>
+          <p>Before any of that happens, every upload is checked against the recording-consent law of the state it was made in — the wrong combination of state, location, and consent is rejected before the audio is even saved, with an audit trail kept on the job for later.</p>
+          <a class="btn btn-ghost" href="https://api.allophilismconnects.com/docs" target="_blank" rel="noopener">Read the full API reference →</a>
+        </div>
+        <div class="reveal">
+          <div class="report-card">
+            <div class="dots"><span></span><span></span><span></span></div>
+            <div>{</div>
+            <div>&nbsp;&nbsp;<span class="rc-key">"status"</span>: <span class="rc-str">"complete"</span>,</div>
+            <div>&nbsp;&nbsp;<span class="rc-key">"shop_state"</span>: <span class="rc-str">"TX"</span>,</div>
+            <div>&nbsp;&nbsp;<span class="rc-key">"consent_requirement"</span>: <span class="rc-str">"one_party"</span>,</div>
+            <div>&nbsp;&nbsp;<span class="rc-key">"consent_attested"</span>: <span class="rc-num">true</span>,</div>
+            <div>&nbsp;&nbsp;<span class="rc-key">"report"</span>: <span class="rc-str">"The shopper was greeted</span></div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="rc-str">within the first fifteen seconds…"</span></div>
+            <div>}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="how">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="eyebrow">How it works</span>
+        <h2>Three calls, one finished report.</h2>
+      </div>
+      <div class="steps">
+        <div class="step reveal">
+          <div class="num">01 / Record</div>
+          <h3>Record the visit</h3>
+          <p>Your shopper records the conversation the way they already do today — no new hardware or app to learn.</p>
+        </div>
+        <div class="step reveal">
+          <div class="num">02 / Verify &amp; listen</div>
+          <h3>Allometrics checks, then listens</h3>
+          <p>The state, location, and consent you declare are checked against that state's recording law first. Only then is the audio transcribed.</p>
+        </div>
+        <div class="step reveal">
+          <div class="num">03 / Report</div>
+          <h3>Get the report</h3>
+          <p>A narrative write-up against your own guidelines lands in minutes — not after a re-listen.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="alt">
+    <div class="wrap">
+      <div class="section-head reveal" style="margin-bottom:0;">
+        <span class="eyebrow">Built for</span>
+        <h2>Programs that run on shopper visits.</h2>
+        <div class="chip-row">
+          <span class="chip">Retail</span>
+          <span class="chip">Hospitality</span>
+          <span class="chip">Financial services</span>
+          <span class="chip">Quick-service restaurants</span>
+          <span class="chip">Property leasing</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact">
+    <div class="wrap">
+      <div class="cta-block reveal">
+        <h2>Let's talk about your program.</h2>
+        <p>Tell us how your shops are structured today and we'll show you what a report looks like on your own criteria.</p>
+        <a class="btn btn-primary" href="mailto:hello@allophilismconnects.com">Email hello@allophilismconnects.com</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap foot-row">
+    <div class="foot-brand">
+      <svg viewBox="0 0 512 512" aria-hidden="true">
+        <defs><linearGradient id="g3" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#FF6F59"/><stop offset="100%" stop-color="#FFC145"/></linearGradient></defs>
+        <circle cx="256" cy="256" r="184" fill="none" stroke="url(#g3)" stroke-width="74"/>
+        <circle cx="256" cy="256" r="18" fill="var(--paper)"/>
+      </svg>
+      Allophilism Connects
+    </div>
+    <div class="fine">© 2026 Allophilism Connects · <a class="doclink" href="https://api.allophilismconnects.com/docs" target="_blank" rel="noopener">Allometrics API reference</a></div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  // Scroll reveal
+  var reveals = document.querySelectorAll('.reveal');
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+    }, { threshold: 0.15 });
+    reveals.forEach(function (el) { io.observe(el); });
+  } else {
+    reveals.forEach(function (el) { el.classList.add('in'); });
+  }
+
+  // Hero waveform -> score animation
+  var canvas = document.getElementById('waveform');
+  var readout = document.getElementById('readout');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var N = 56;
+  var seedRand = (function () {
+    var s = 42;
+    return function () { s = (s * 9301 + 49297) % 233280; return s / 233280; };
+  })();
+
+  var waveformVals = [];
+  var scoreVals = [];
+  for (var i = 0; i < N; i++) {
+    waveformVals.push(0.15 + seedRand() * 0.85);
+    var base = 0.45 + (Math.sin(i * 0.5) * 0.15) + seedRand() * 0.25;
+    scoreVals.push(Math.min(base, 0.98));
+  }
+
+  function resize() {
+    var dpr = window.devicePixelRatio || 1;
+    var rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function draw(t) {
+    var rect = canvas.getBoundingClientRect();
+    var w = rect.width, h = rect.height;
+    ctx.clearRect(0, 0, w, h);
+    var gap = 4;
+    var barW = (w - gap * (N - 1)) / N;
+    var cs = getComputedStyle(document.documentElement);
+    var coral = cs.getPropertyValue('--coral').trim() || '#FF6F59';
+    var amber = cs.getPropertyValue('--amber').trim() || '#FFC145';
+
+    for (var i = 0; i < N; i++) {
+      var v = waveformVals[i] + (scoreVals[i] - waveformVals[i]) * t;
+      var barH = Math.max(4, v * (h - 10));
+      var x = i * (barW + gap);
+      var y = (h - barH) / 2;
+      var mix = i / (N - 1);
+      ctx.fillStyle = lerpColor(coral, amber, mix);
+      roundRect(ctx, x, y, barW, barH, Math.min(barW / 2, 3));
+      ctx.fill();
+    }
+  }
+
+  function lerpColor(a, b, t) {
+    var ca = hexToRgb(a), cb = hexToRgb(b);
+    var r = Math.round(ca.r + (cb.r - ca.r) * t);
+    var g = Math.round(ca.g + (cb.g - ca.g) * t);
+    var bl = Math.round(ca.b + (cb.b - ca.b) * t);
+    return 'rgb(' + r + ',' + g + ',' + bl + ')';
+  }
+  function hexToRgb(hex) {
+    hex = hex.replace('#', '');
+    if (hex.length === 3) hex = hex.split('').map(function (c) { return c + c; }).join('');
+    var num = parseInt(hex, 16);
+    return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 };
+  }
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  resize();
+  window.addEventListener('resize', function () { resize(); draw(animT); });
+
+  var animT = reduceMotion ? 1 : 0;
+  draw(animT);
+  if (reduceMotion) {
+    readout.classList.add('show');
+  } else {
+    var start = null;
+    var duration = 1500;
+    function frame(ts) {
+      if (!start) start = ts;
+      var p = Math.min(1, (ts - start) / duration);
+      animT = 1 - Math.pow(1 - p, 3); // ease-out cubic
+      draw(animT);
+      if (p < 1) {
+        requestAnimationFrame(frame);
+      } else {
+        readout.classList.add('show');
+      }
+    }
+    // start after a short beat so the page settles first
+    setTimeout(function () { requestAnimationFrame(frame); }, 350);
+  }
+})();
+</script>
+
+</body>
+</html>
