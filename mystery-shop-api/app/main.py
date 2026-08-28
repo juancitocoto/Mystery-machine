@@ -9,6 +9,8 @@ Then open http://127.0.0.1:8000/docs to see the interactive API docs
 FastAPI generates automatically from your endpoints and models.
 """
 
+import hmac
+
 from fastapi import FastAPI, UploadFile, File, Form, Depends, HTTPException, BackgroundTasks, Header, Request
 
 from slowapi import Limiter
@@ -66,7 +68,12 @@ def require_api_key(x_api_key: str = Header(...)) -> None:
 
     Client usage: send a header like  X-API-Key: your-secret-key
     """
-    if x_api_key != API_KEY:
+    # hmac.compare_digest avoids leaking timing info about how much of
+    # the key matched, unlike a plain `!=` string comparison. It requires
+    # both arguments to be the same type - `API_KEY or ""` keeps this safe
+    # (always rejects) if API_KEY isn't set, instead of raising a TypeError
+    # against None.
+    if not hmac.compare_digest(x_api_key, API_KEY or ""):
         raise HTTPException(status_code=401, detail="Invalid or missing API key")
 
 
@@ -152,6 +159,8 @@ async def create_shop_report(
         consent_requirement=consent_requirement.value,
         consent_attested=consent_attested,
         employer_disclosure_attested=employer_disclosure_attested,
+        recording_medium=recording_medium.value,
+        recording_location_type=recording_location_type.value,
     )
 
     # 4. Kick off the slow work in the background. FastAPI runs this

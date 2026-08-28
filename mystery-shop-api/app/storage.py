@@ -17,11 +17,14 @@ from app.config import MAX_FILE_SIZE_BYTES, ALLOWED_EXTENSIONS, UPLOAD_DIR
 Path(UPLOAD_DIR).mkdir(parents=True, exist_ok=True)
 
 
-def validate_extension(filename: str) -> str:
+def validate_extension(filename: str | None) -> str:
     """
     Check the file extension against our whitelist.
     Returns the (lowercased) extension if valid, otherwise raises an error.
     """
+    if not filename:
+        raise HTTPException(status_code=400, detail="Missing filename.")
+
     ext = Path(filename).suffix.lower()
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(

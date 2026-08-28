@@ -57,7 +57,11 @@ JOBS_TABLE_SCHEMA = textwrap.dedent(
       consent_requirement           TEXT    'one_party' or 'all_party' - the consent law that applied to this shop
       consent_attested              INTEGER 0/1 - whether the shopper's consent was attested
       employer_disclosure_attested  INTEGER 0/1 - whether an employer recording disclosure was attested
+      recording_medium              TEXT    'in_person' or 'phone_call'
+      recording_location_type       TEXT    'public_area' or 'private_area'
+      transcript                    TEXT    the raw transcript (NULL until transcription finishes)
       created_at                    TEXT    UTC ISO 8601 timestamp, e.g. '2026-08-27T14:03:11+00:00'
+      updated_at                    TEXT    UTC ISO 8601 timestamp of the job's last status change
     """
 )
 

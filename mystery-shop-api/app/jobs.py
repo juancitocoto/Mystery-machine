@@ -71,6 +71,17 @@ def _init_db() -> None:
         # a timestamp, a question like "how many shops this month" has no
         # way to be answered. NULL on legacy pre-migration rows.
         _ensure_column(conn, "created_at", "TEXT")
+        # Rest of the consent-law audit trail (see app/consent_law.py) -
+        # main.py already computes these to run the consent check, but
+        # previously didn't persist them. NULL on legacy pre-migration rows.
+        _ensure_column(conn, "recording_medium", "TEXT")
+        _ensure_column(conn, "recording_location_type", "TEXT")
+        # The transcript, saved once transcribe_audio() finishes (see
+        # worker.py) - previously computed and discarded.
+        _ensure_column(conn, "transcript", "TEXT")
+        # Bumped on every update_job() call - lets an operator see when a
+        # job last changed state, not just when it was created.
+        _ensure_column(conn, "updated_at", "TEXT")
 
 
 def _ensure_column(conn: sqlite3.Connection, column: str, sql_type: str) -> None:
@@ -99,6 +110,9 @@ def _row_to_job(row: sqlite3.Row) -> ShopJobResponse:
             bool(row["employer_disclosure_attested"]) if row["employer_disclosure_attested"] is not None else None
         ),
         created_at=row["created_at"],
+        recording_medium=row["recording_medium"],
+        recording_location_type=row["recording_location_type"],
+        transcript=row["transcript"],
     )
 
 
@@ -107,6 +121,8 @@ def create_job(
     consent_requirement: str,
     consent_attested: bool,
     employer_disclosure_attested: bool,
+    recording_medium: str,
+    recording_location_type: str,
 ) -> ShopJobResponse:
     """
     Create a new job in PENDING state and store it, along with the
@@ -114,6 +130,7 @@ def create_job(
     app/consent_law.py) - this is the audit trail for why this
     particular recording was allowed through.
     """
+    now = datetime.now(timezone.utc).isoformat()
     job = ShopJobResponse(
         job_id=uuid.uuid4().hex,
         status=JobStatus.PENDING,
@@ -125,7 +142,9 @@ def create_job(
         # as plain TEXT since SQLite has no native datetime type. UTC (not
         # local time) so it sorts/compares correctly regardless of where
         # the server runs.
-        created_at=datetime.now(timezone.utc).isoformat(),
+        created_at=now,
+        recording_medium=recording_medium,
+        recording_location_type=recording_location_type,
     )
     with _get_connection() as conn:
         conn.execute(
@@ -133,8 +152,8 @@ def create_job(
             INSERT INTO jobs (
                 job_id, status, report, error_message,
                 shop_state, consent_requirement, consent_attested, employer_disclosure_attested,
-                created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                created_at, recording_medium, recording_location_type, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 job.job_id,
@@ -146,6 +165,9 @@ def create_job(
                 int(job.consent_attested),
                 int(job.employer_disclosure_attested),
                 job.created_at,
+                job.recording_medium,
+                job.recording_location_type,
+                now,
             ),
         )
     return job
@@ -158,7 +180,7 @@ def get_job(job_id: str) -> Optional[ShopJobResponse]:
             """
             SELECT job_id, status, report, error_message,
                    shop_state, consent_requirement, consent_attested, employer_disclosure_attested,
-                   created_at
+                   created_at, recording_medium, recording_location_type, transcript
             FROM jobs WHERE job_id = ?
             """,
             (job_id,),
@@ -215,6 +237,10 @@ def update_job(job_id: str, **fields) -> None:
     # (e.g. "complete"), not the Enum member itself.
     if "status" in fields and isinstance(fields["status"], JobStatus):
         fields["status"] = fields["status"].value
+
+    # Every update touches updated_at, so an operator can see when a job
+    # last changed state, not just when it was created.
+    fields["updated_at"] = datetime.now(timezone.utc).isoformat()
 
     # Builds e.g. "status = ?, report = ?" from whichever fields were
     # passed in, so callers can update just one field or several at once.

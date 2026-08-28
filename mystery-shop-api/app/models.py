@@ -6,7 +6,7 @@ FastAPI uses these to validate requests automatically and to generate
 your interactive docs at /docs.
 """
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 from enum import Enum
 
@@ -41,6 +41,21 @@ class ShopJobResponse(BaseModel):
     consent_attested: Optional[bool] = None
     employer_disclosure_attested: Optional[bool] = None
     created_at: Optional[str] = None  # UTC ISO 8601 timestamp; None only for legacy pre-migration rows
+
+    # Rest of the consent-law audit trail (see app/consent_law.py) - what
+    # medium and location type this recording was attested under, kept
+    # alongside consent_requirement/consent_attested above so the full
+    # legal basis for a job is on record, not just part of it. Excluded
+    # from the public JSON response since clients already sent these
+    # values themselves; internal-only (support agent, audit review).
+    recording_medium: Optional[str] = Field(default=None, exclude=True)
+    recording_location_type: Optional[str] = Field(default=None, exclude=True)
+
+    # The raw transcript, stored once transcription finishes - kept
+    # internal (excluded from the public response, which only exposes the
+    # finished report) but available to the support agent / an operator
+    # reviewing a specific job.
+    transcript: Optional[str] = Field(default=None, exclude=True)
 
 
 class SupportAgentRequest(BaseModel):

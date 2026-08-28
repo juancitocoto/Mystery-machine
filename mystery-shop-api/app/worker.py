@@ -53,6 +53,7 @@ async def process_shop_job(job_id: str, audio_path: str, guidelines_text: str) -
     try:
         update_job(job_id, status=JobStatus.TRANSCRIBING)
         transcript = await transcribe_audio(audio_path)
+        update_job(job_id, transcript=transcript)
 
         update_job(job_id, status=JobStatus.GENERATING_REPORT)
         report = await generate_report(transcript, guidelines_text)
