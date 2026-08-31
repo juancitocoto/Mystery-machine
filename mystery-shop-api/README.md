@@ -31,6 +31,7 @@ tests/
 └── test_support_agent.py # focused tests for the read-only SQL safety guard
 conftest.py           # test setup (forces MOCK_MODE on, sets a test API key)
 DEPLOYMENT.md          # step-by-step Railway deployment walkthrough
+DEPLOYMENT_RENDER.md    # step-by-step Render deployment walkthrough
 requirements.txt       # runtime dependencies only (what the Docker image installs)
 requirements-dev.txt    # + pytest/httpx, for running tests locally
 Dockerfile              # builds a container image of the API
@@ -351,6 +352,10 @@ A few things worth knowing:
 
 **Deploying to Railway specifically:** see `DEPLOYMENT.md` for a full
 walkthrough, including the persistent-volume step above in more detail.
+
+**Deploying to Render specifically:** see `DEPLOYMENT_RENDER.md` -
+this repo's root-level `render.yaml` builds straight from this monorepo,
+no separate repo needed.
 
 ## Status
 
