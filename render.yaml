@@ -1,0 +1,39 @@
+# Render Blueprint for this monorepo. Push this repo to GitHub, then in
+# Render click New > Blueprint and point it here - Render finds this file
+# automatically and offers to create both services below.
+#
+# See mystery-shop-api/DEPLOYMENT_RENDER.md for the full walkthrough
+# (env vars, persistent disk for the job database, custom domains).
+
+services:
+  - type: web
+    name: mystery-shop-api
+    runtime: docker
+    rootDir: mystery-shop-api
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: API_KEY
+        sync: false
+      - key: ASSEMBLYAI_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: MOCK_MODE
+        value: "false"
+    # Uncomment once you've upgraded this service off the free plan -
+    # Render's free tier doesn't support persistent disks, so JOBS_DB_PATH
+    # (and the recording-consent audit trail in it) would be wiped on
+    # every redeploy without one. See DEPLOYMENT_RENDER.md step 4.
+    # disk:
+    #   name: jobs-data
+    #   mountPath: /app/data
+    #   sizeGB: 1
+
+  - type: web
+    name: allophilism-connects-website
+    runtime: docker
+    rootDir: website
+    dockerfilePath: ./Dockerfile
+    plan: free
