@@ -1,2 +1,4 @@
 completed
 Mystery-machine/
+__pycache__/
+*.pyc
