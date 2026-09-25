@@ -123,16 +123,24 @@ def create_job(
     employer_disclosure_attested: bool,
     recording_medium: str,
     recording_location_type: str,
+    job_id: Optional[str] = None,
 ) -> ShopJobResponse:
     """
     Create a new job in PENDING state and store it, along with the
     recording-consent attestations that justified accepting it (see
     app/consent_law.py) - this is the audit trail for why this
     particular recording was allowed through.
+
+    job_id: pass the same id check_consent_basis() logged its audit
+    entry under (main.py generates one up front for exactly this reason)
+    so the job row and its consent-audit log entry are correlated by one
+    id. Omit it to have one generated here, same as before - e.g. for
+    tests that create a job directly without going through the consent
+    check first.
     """
     now = datetime.now(timezone.utc).isoformat()
     job = ShopJobResponse(
-        job_id=uuid.uuid4().hex,
+        job_id=job_id or uuid.uuid4().hex,
         status=JobStatus.PENDING,
         shop_state=shop_state,
         consent_requirement=consent_requirement,
