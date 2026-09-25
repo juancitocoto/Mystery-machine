@@ -56,10 +56,71 @@ laws and case law change):
   it as one-party without the caveat.
 """
 
+import json
+import logging
+import uuid
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional
 
 from fastapi import HTTPException
+
+# Dedicated logger for the compliance audit trail below - kept separate
+# from the app's general-purpose logging (if any gets added later) so
+# an operator can point a log shipper at just "consent_audit" and get a
+# clean stream of one immutable JSON object per consent decision,
+# without other request noise mixed in. Uses the stdlib only: no extra
+# dependency for something this codebase needs to keep working even if
+# a fancier logging backend is swapped in later.
+AUDIT_LOGGER_NAME = "consent_audit"
+_audit_logger = logging.getLogger(AUDIT_LOGGER_NAME)
+
+
+def _emit_audit_log(
+    *,
+    job_id: str,
+    outcome: str,
+    consent_requirement: "Optional[ConsentRequirement]",
+    gate_failed: Optional[str],
+    http_status: Optional[int],
+    detail: Optional[str],
+    inputs: dict,
+) -> None:
+    """
+    Logs one self-contained JSON object recording a single consent-check
+    decision - the compliance audit trail. "Immutable" here means what it
+    means for a log line: this function builds one complete payload and
+    emits it once: nothing about a past decision is ever edited or
+    deleted afterward the way a database row could be UPDATEd. Anyone
+    auditing the program's history reads the log stream, not a mutable
+    row that only reflects the current state.
+
+    Called from every exit point of check_consent_basis() below (each of
+    the four rejection gates, and the final success path) so there's
+    exactly one audit entry per call, whichever way it went.
+    """
+    payload = {
+        "audit_event": "consent_check",
+        "job_id": job_id,
+        # High-precision UTC timestamp: microsecond resolution, always
+        # UTC (never local time) so entries from any server sort/compare
+        # correctly regardless of where the process runs.
+        "timestamp_utc": datetime.now(timezone.utc).isoformat(timespec="microseconds"),
+        "outcome": outcome,  # "allowed" | "rejected"
+        "rule_matched": {
+            # The consent regime this decision was actually governed by,
+            # e.g. "all_party" - null when rejected before a regime was
+            # even determined (e.g. the private-location gate, which
+            # fires regardless of state).
+            "consent_requirement": consent_requirement.value if consent_requirement else None,
+            # Which specific gate rejected the request, or null on success.
+            "gate_failed": gate_failed,
+        },
+        "inputs": inputs,
+        "http_status": http_status,
+        "detail": detail,
+    }
+    _audit_logger.info(json.dumps(payload, sort_keys=True))
 
 
 class ConsentRequirement(str, Enum):
@@ -210,6 +271,7 @@ def check_consent_basis(
     recording_location_type: RecordingLocationType,
     consent_attested: bool,
     employer_disclosure_attested: bool,
+    job_id: Optional[str] = None,
 ) -> ConsentRequirement:
     """
     The actual gate: raises HTTPException (422) if the request doesn't
@@ -221,7 +283,17 @@ def check_consent_basis(
     is created - a request that fails this check leaves no trace on the
     server at all, which is the point: this isn't just a warning, it's
     a hard stop.
+
+    job_id: pass the SAME id you're about to create the job record with
+    (main.py generates it up front for exactly this reason) so the audit
+    log entry below and the persisted job row are correlated by one id.
+    If omitted (e.g. calling this directly, outside the normal request
+    flow), a fresh id is minted just for the log entry - every call still
+    produces a fully-identified audit record, it just won't line up with
+    a job row that doesn't exist yet.
     """
+    job_id = job_id or uuid.uuid4().hex
+
     # Normalize once, up front, to a PLAIN string - state_code may arrive
     # as a USState enum member (main.py's shop_state Form field) rather
     # than a plain str. Enum members mixed with str behave like strings
@@ -233,75 +305,100 @@ def check_consent_basis(
     # what type the caller passed in.
     state_code = (state_code or "").strip().upper()
 
+    # Built once, reused by every audit-log call below regardless of
+    # which gate (if any) rejects the request - the inputs are the same
+    # no matter where this ends up exiting.
+    inputs = {
+        "shop_state": state_code,
+        "recording_medium": recording_medium.value,
+        "recording_location_type": recording_location_type.value,
+        "consent_attested": consent_attested,
+        "employer_disclosure_attested": employer_disclosure_attested,
+    }
+
     # Gate 1: location. Unconditional, regardless of state or consent -
     # see module docstring for why this doesn't have a state-by-state
     # exception path.
     if recording_location_type == RecordingLocationType.PRIVATE_AREA:
-        raise HTTPException(
-            status_code=422,
-            detail=(
-                "Recording in a private area (break room, manager's office, "
-                "fitting room, restroom, etc.) is not permitted through this "
-                "API under any circumstances, regardless of state or consent. "
-                "Only recordings from public-facing areas (sales floor, "
-                "showroom, checkout, leasing office lobby, etc.) can be "
-                "submitted - set recording_location_type=public_area."
-            ),
+        detail = (
+            "Recording in a private area (break room, manager's office, "
+            "fitting room, restroom, etc.) is not permitted through this "
+            "API under any circumstances, regardless of state or consent. "
+            "Only recordings from public-facing areas (sales floor, "
+            "showroom, checkout, leasing office lobby, etc.) can be "
+            "submitted - set recording_location_type=public_area."
         )
+        _emit_audit_log(
+            job_id=job_id, outcome="rejected", consent_requirement=None,
+            gate_failed="private_location", http_status=422, detail=detail, inputs=inputs,
+        )
+        raise HTTPException(status_code=422, detail=detail)
 
     # Gate 2: state + medium. Distinct "not a real state" vs. "not yet
     # classified" error messages, since they call for different fixes.
     requirement = get_requirement(state_code, recording_medium)
 
     if requirement is None:
-        raise HTTPException(
-            status_code=422,
-            detail=(
-                f"'{state_code}' is not a recognized US state or DC code. "
-                "Use the two-letter postal abbreviation, e.g. 'TX'."
-            ),
+        detail = (
+            f"'{state_code}' is not a recognized US state or DC code. "
+            "Use the two-letter postal abbreviation, e.g. 'TX'."
         )
+        _emit_audit_log(
+            job_id=job_id, outcome="rejected", consent_requirement=None,
+            gate_failed="unrecognized_state", http_status=422, detail=detail, inputs=inputs,
+        )
+        raise HTTPException(status_code=422, detail=detail)
 
     if requirement == ConsentRequirement.REQUIRES_REVIEW:
-        raise HTTPException(
-            status_code=422,
-            detail=(
-                f"This system hasn't confirmed {state_code}'s recording consent "
-                f"requirement for {recording_medium.value} recordings yet, so a "
-                "job can't be created for it. Verify the actual law for this "
-                "state (ideally with an attorney) and add it to "
-                "STATE_CONSENT_REQUIREMENTS (or MEDIUM_SPECIFIC_OVERRIDES) in "
-                "app/consent_law.py before submitting shops like this one."
-            ),
+        detail = (
+            f"This system hasn't confirmed {state_code}'s recording consent "
+            f"requirement for {recording_medium.value} recordings yet, so a "
+            "job can't be created for it. Verify the actual law for this "
+            "state (ideally with an attorney) and add it to "
+            "STATE_CONSENT_REQUIREMENTS (or MEDIUM_SPECIFIC_OVERRIDES) in "
+            "app/consent_law.py before submitting shops like this one."
         )
+        _emit_audit_log(
+            job_id=job_id, outcome="rejected", consent_requirement=requirement,
+            gate_failed="requires_review", http_status=422, detail=detail, inputs=inputs,
+        )
+        raise HTTPException(status_code=422, detail=detail)
 
     # Gate 3: the shopper's own consent. Required unconditionally - even
     # in a one-party state, someone has to actually confirm the shopper
     # (a party to the conversation) consented to recording it.
     if not consent_attested:
-        raise HTTPException(
-            status_code=422,
-            detail=(
-                "consent_attested must be true: confirm the shopper consented "
-                "to being part of the recorded conversation before submitting."
-            ),
+        detail = (
+            "consent_attested must be true: confirm the shopper consented "
+            "to being part of the recorded conversation before submitting."
         )
+        _emit_audit_log(
+            job_id=job_id, outcome="rejected", consent_requirement=requirement,
+            gate_failed="shopper_consent_missing", http_status=422, detail=detail, inputs=inputs,
+        )
+        raise HTTPException(status_code=422, detail=detail)
 
     # Gate 4: all-party states additionally need proof of a lawful basis
     # for recording the OTHER party (the employee/agent) - typically an
     # employer's active monitoring/recording disclosure policy.
     if requirement == ConsentRequirement.ALL_PARTY and not employer_disclosure_attested:
-        raise HTTPException(
-            status_code=422,
-            detail=(
-                f"{state_code} requires all-party consent to record "
-                f"{recording_medium.value} conversations. Recording here is "
-                "only lawful if the location has an active employee "
-                "monitoring/recording disclosure in place (e.g. an employee "
-                "handbook clause covering QA recording) - confirm that's the "
-                "case and set employer_disclosure_attested=true, or don't "
-                "submit this shop."
-            ),
+        detail = (
+            f"{state_code} requires all-party consent to record "
+            f"{recording_medium.value} conversations. Recording here is "
+            "only lawful if the location has an active employee "
+            "monitoring/recording disclosure in place (e.g. an employee "
+            "handbook clause covering QA recording) - confirm that's the "
+            "case and set employer_disclosure_attested=true, or don't "
+            "submit this shop."
         )
+        _emit_audit_log(
+            job_id=job_id, outcome="rejected", consent_requirement=requirement,
+            gate_failed="employer_disclosure_missing", http_status=422, detail=detail, inputs=inputs,
+        )
+        raise HTTPException(status_code=422, detail=detail)
 
+    _emit_audit_log(
+        job_id=job_id, outcome="allowed", consent_requirement=requirement,
+        gate_failed=None, http_status=None, detail=None, inputs=inputs,
+    )
     return requirement

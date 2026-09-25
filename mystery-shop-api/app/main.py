@@ -10,6 +10,7 @@ FastAPI generates automatically from your endpoints and models.
 """
 
 import hmac
+import uuid
 
 from fastapi import FastAPI, UploadFile, File, Form, Depends, HTTPException, BackgroundTasks, Header, Request
 
@@ -143,10 +144,17 @@ async def create_shop_report(
     @limiter.limit(...) decorator above, which inspects it to identify
     the calling client.
     """
+    # 0. Mint the job id up front (rather than letting create_job()
+    #    generate its own below) so the SAME id ties together the
+    #    consent-audit log entry from step 1 and the persisted job row
+    #    from step 3 - one id, two records of the same decision.
+    job_id = uuid.uuid4().hex
+
     # 1. Legal gate FIRST - reject before the audio file ever touches
     #    disk, and before a job record is even created.
     consent_requirement = check_consent_basis(
-        shop_state, recording_medium, recording_location_type, consent_attested, employer_disclosure_attested
+        shop_state, recording_medium, recording_location_type, consent_attested, employer_disclosure_attested,
+        job_id=job_id,
     )
 
     # 2. Validate + securely save the uploaded audio file.
@@ -155,6 +163,7 @@ async def create_shop_report(
     # 3. Create a job record so we can track progress - persisting the
     #    consent attestations too, as an audit trail for this job.
     job = create_job(
+        job_id=job_id,
         shop_state=shop_state.strip().upper(),
         consent_requirement=consent_requirement.value,
         consent_attested=consent_attested,
